@@ -17,6 +17,11 @@ if len(sys.argv) > 1:
 #output_port = 'HDMI1'
 output_port = None
 
+if input_path == 'wifibroadcast':
+    input_pipeline = 'fdsrc ! h264parse ! avdec_h264'
+else:
+    input_pipeline = 'v4l2src device=' + input_path + ' ! deinterlace'
+
 # Don't write the stream to disk by default
 dump_pipeline = ''
 #dump_pipeline = 'orig. ! queue ! filesink location=capture.raw'
@@ -49,9 +54,8 @@ class GTK_Main(object):
         self.offset_x = 0
 
         # Set up the gstreamer pipeline
-        self.player = Gst.parse_launch('v4l2src device=' + input_dev + ' ! ' +
+        self.player = Gst.parse_launch(input_pipeline + ' ! ' +
                 'tee name=orig ! ' +
-                'deinterlace ! ' +
                 'videoscale ! ' +
                 'video/x-raw,width=' + str(self.per_eye_w) + ',height=' +
                 str(h) + ' ! ' +
@@ -178,5 +182,5 @@ if h > w:
 
 GObject.threads_init()
 Gst.init(None)
-GTK_Main(w, h, x, y, input_path)
+GTK_Main(w, h, x, y)
 Gtk.main()
