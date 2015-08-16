@@ -34,7 +34,7 @@ from gi.repository import Gst, GObject, Gtk, Gdk
 from gi.repository import GdkX11, GstVideo
 
 class GTK_Main(object):
-    def __init__(self, w, h, x, y, input_dev):
+    def __init__(self, w, h, x, y):
         window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
         window.set_decorated(False)
         window.move(x, y)
