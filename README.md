@@ -10,7 +10,7 @@ it and displays without any deformation.  This works great for wide-angle
 / fish-eye lens cameras used for FPV but won't look good for a narrow-angle
 camera -- the image will look deformed.
 
- $ ./stream.py [ device-path [ scale ] ]
+    $ ./stream.py [ device-path [ scale ] ]
 
 `device-path` may be a /dev path to a v4l2 video source such as an
 analog receiver connected to a USB port through a TV-grabber (EasyCap and
@@ -56,6 +56,13 @@ Ideas
   colours, etc. to achieve something like the greenish fighter-jet glass
   cockpit style overlay.  Could also make use of basic 3D but that could
   be too distracting.
+
+Dependencies
+============
+
+Gstreamer-1.0 or later is required, gobject and GTK libraries and their
+python bindings.  Installing the gstreamer python bindings should in
+theory pull everything else in as dependency (`apt-get install python-gst-1.0`).
 
 Problems
 ========
