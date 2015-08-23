@@ -106,6 +106,7 @@ class GTK_Main(object):
         sink0.set_property('ypos', v_pad)
         sink1.set_property('ypos', v_pad)
 
+        self.caps_elem.set_property('caps', None) # Release lock for a moment
         self.caps.set_value('width', video_w)
         self.caps.set_value('height', video_h)
         self.caps_elem.set_property('caps', self.caps)
@@ -140,11 +141,17 @@ class GTK_Main(object):
         elif keyname == 'Right':
             self.offset_x += 4
             self.geom_update()
-        elif keyname == 'Up':
+        elif keyname == 'Up' and self.video_scale > 20:
+            self.video_scale -= 5
+            self.geom_update()
+        elif keyname == 'Down' and self.video_scale < 120:
+            self.video_scale += 5
+            self.geom_update()
+        elif keyname == 'bracketleft':
             self.left_x -= 1
             self.right_x += 1
             self.geom_update()
-        elif keyname == 'Down':
+        elif keyname == 'bracketright':
             self.left_x += 1
             self.right_x -= 1
             self.geom_update()
