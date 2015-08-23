@@ -26,6 +26,10 @@ else:
 dump_pipeline = ''
 #dump_pipeline = 'orig. ! queue ! filesink location=capture.raw'
 
+default_scale = 100
+if len(sys.argv) > 2:
+    default_scale = int(sys.argv[2])
+
 import subprocess, re, gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GObject, Gtk, Gdk
@@ -46,48 +50,65 @@ class GTK_Main(object):
         window.add(self.gst_window)
         window.show_all()
 
-        # TODO: disable screen saver (gsettings?)
+        # TODO: disable screen saver and autosuspend (gsettings?)
 
         self.per_eye_w = w / 2
+        self.per_eye_h = h
+        self.video_scale = default_scale
         self.left_x = 0
         self.right_x = w / 2
         self.offset_x = 0
+
+        self.caps = Gst.Caps.new_empty_simple('video/x-raw')
 
         # Set up the gstreamer pipeline
         self.player = Gst.parse_launch(input_pipeline + ' ! ' +
                 'tee name=orig ! ' +
                 'videoscale ! ' +
-                'video/x-raw,width=' + str(self.per_eye_w) + ',height=' +
-                str(h) + ' ! ' +
+                'capsfilter name=caps ! ' +
                 'tee name=tee ! ' +
                 'queue ! ' +
-                'videomixer name=mixer ! ' +
+                'videomixer name=mixer background=black ! ' +
+                'video/x-raw,width=' + str(w) + ',height=' + str(h) + ' ! ' +
                 'xvimagesink double-buffer=false sync=false ' +
                 'tee. ! ' +
                 'queue ! ' +
                 'mixer. ' +
                 dump_pipeline)
         self.mixer = self.player.get_by_name('mixer')
+        self.caps_elem = self.player.get_by_name('caps')
+
         bus = self.player.get_bus()
         bus.add_signal_watch()
         bus.enable_sync_message_emission()
         bus.connect("message", self.on_message)
         bus.connect("sync-message::element", self.on_sync_message)
 
-        self.xpos_update()
+        self.geom_update()
 
         self.player.set_state(Gst.State.PLAYING)
         sys.stderr.write('Gstreamer pipeline created and started\n')
 
-    def xpos_update(self):
+    def geom_update(self):
+        video_w = self.per_eye_w * self.video_scale / 100
+        video_h = self.per_eye_h * self.video_scale / 100
+        h_pad = (self.per_eye_w - video_w) / 2
+        v_pad = (self.per_eye_h - video_h) / 2
+
         # TODO: reimplement x offset in a way that one eye's video never
         # shows in the other eye's half of the screen
 
         sink0 = self.mixer.get_static_pad('sink_0')
         sink1 = self.mixer.get_static_pad('sink_1')
 
-        sink0.set_property('xpos', self.left_x + self.offset_x)
-        sink1.set_property('xpos', self.right_x + self.offset_x)
+        sink0.set_property('xpos', self.left_x + self.offset_x + h_pad)
+        sink1.set_property('xpos', self.right_x + self.offset_x + h_pad)
+        sink0.set_property('ypos', v_pad)
+        sink1.set_property('ypos', v_pad)
+
+        self.caps.set_value('width', video_w)
+        self.caps.set_value('height', video_h)
+        self.caps_elem.set_property('caps', self.caps)
 
     def on_message(self, bus, message):
         t = message.type
@@ -115,18 +136,18 @@ class GTK_Main(object):
             Gtk.main_quit()
         elif keyname == 'Left':
             self.offset_x -= 4
-            self.xpos_update()
+            self.geom_update()
         elif keyname == 'Right':
             self.offset_x += 4
-            self.xpos_update()
+            self.geom_update()
         elif keyname == 'Up':
             self.left_x -= 1
             self.right_x += 1
-            self.xpos_update()
+            self.geom_update()
         elif keyname == 'Down':
             self.left_x += 1
             self.right_x -= 1
-            self.xpos_update()
+            self.geom_update()
 
 # Find the selected screen using xrandr directly
 #
