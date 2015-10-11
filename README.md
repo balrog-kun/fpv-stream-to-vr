@@ -10,20 +10,28 @@ it and displays without any deformation.  This works great for wide-angle
 / fish-eye lens cameras used for FPV but won't look good for a narrow-angle
 camera -- the image will look deformed.
 
-    $ ./stream.py [ device-path [ scale ] ]
+    $ ./stream.py [ options ... ] [ device-path ]
 
-`device-path` may be a /dev path to a v4l2 video source such as an
+_device-path_ may be a /dev path to a v4l2 video source such as an
 analog receiver connected to a USB port through a TV-grabber (EasyCap and
 similar), usually /dev/video*N*.  Default is `/dev/video1` since
 `/dev/video0` is often a laptop's selfie camera.
 
-`device-path` may also be `wifibroadcast` for the script to try reading
+_device-path_ may also be `wifibroadcast` for the script to try reading
 video from standard input as described on the [wifibroadcast project page]
 (https://befinitiv.wordpress.com/wifibroadcast-analog-like-transmission-of-live-video-data/).
 In that case you'll use something like
 `sudo ./rx -b 8 -r 4 -f 1024 wlan0 | ./stream.py wifibroadcast`
 
-`scale` can be an integer percentage to set the initial video scale.
+Other options
+=============
+
+`-viewport` creates additional video output windows for people who want to
+watch the feed on the laptop screen while the pilot uses the goggles.
+
+`-defscale` _`<scale>`_
+
+_scale_ can be an integer percentage to set the initial video scale.
 Default is 100.  100 means use the full goggles resolution (about 110
 degrees FOV on an oculus DK2).  20 or 30 percent will give a FOV
 similar to Fatshark, Headplay and other goggles.
