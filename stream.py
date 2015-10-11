@@ -1,13 +1,8 @@
 #!/usr/bin/env python
 
-import sys
-
-input_path = '/dev/video1'
+default_input_path = '/dev/video1'
 oculus_width = 1920
 oculus_height = 1080
-
-if len(sys.argv) > 1:
-    input_path = sys.argv[1]
 
 # Set output_port to an output name recognized by xrandr to override where
 # we output the video - if output_port is None we'll look for
@@ -16,11 +11,6 @@ if len(sys.argv) > 1:
 # xrandr with half of the screen area for each eye.
 #output_port = 'HDMI1'
 output_port = None
-
-if input_path == 'wifibroadcast':
-    input_pipeline = 'fdsrc ! h264parse ! avdec_h264'
-else:
-    input_pipeline = 'v4l2src device=' + input_path + ' ! deinterlace'
 
 # Don't write the stream to disk by default
 dump_pipeline = ''
@@ -38,8 +28,35 @@ dump_pipeline = ''
 #dump_pipeline = 'orig. ! theoraenc bitrate=4096 ! oggmux ! queue ! filesink location=capture.ogg'
 
 default_scale = 100
-if len(sys.argv) > 2:
-    default_scale = int(sys.argv[2])
+viewports = 0
+input_path = None
+
+import sys
+
+pos = 1
+while pos < len(sys.argv):
+    param = sys.argv[pos]
+    pos += 1
+
+    if param == '-defscale':
+        if pos == len(sys.argv):
+            raise Exception('Missing parameter')
+        default_scale = int(sys.argv[pos])
+        pos += 1
+    elif param == '-viewport':
+        viewports += 1
+    else:
+        if input_path is not None:
+            raise Exception('Input device already set to ' + input_path)
+        input_path = param
+
+if input_path is None:
+    input_path = default_input_path
+
+if input_path == 'wifibroadcast':
+    input_pipeline = 'fdsrc ! h264parse ! avdec_h264'
+else:
+    input_pipeline = 'v4l2src device=' + input_path + ' ! deinterlace'
 
 import subprocess, re, gi
 gi.require_version('Gst', '1.0')
@@ -50,6 +67,8 @@ from gi.repository import GdkX11, GstVideo
 
 class GTK_Main(object):
     def __init__(self, w, h, x, y):
+        self.gst_windows = {}
+
         window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
         window.set_decorated(False)
         window.move(x, y)
@@ -57,9 +76,18 @@ class GTK_Main(object):
         window.fullscreen()
         window.connect("destroy", Gtk.main_quit, "WM destroy")
         window.connect("key_press_event", self.on_key_press)
-        self.gst_window = Gtk.DrawingArea()
-        window.add(self.gst_window)
+        self.gst_windows['goggles'] = Gtk.DrawingArea()
+        window.add(self.gst_windows['goggles'])
         window.show_all()
+
+        for i in xrange(0, viewports):
+            vpwindow = Gtk.Window(Gtk.WindowType.TOPLEVEL)
+            vpwindow.move(i * 32, 0)
+            vpwindow.connect("destroy", Gtk.main_quit, "WM destroy")
+            vpwindow.connect("key_press_event", self.on_key_press)
+            self.gst_windows['viewport' + str(i)] = Gtk.DrawingArea()
+            vpwindow.add(self.gst_windows['viewport' + str(i)])
+            vpwindow.show_all()
 
         # TODO: disable screen saver and autosuspend (gsettings?)
 
@@ -81,10 +109,14 @@ class GTK_Main(object):
                 'queue ! ' +
                 'videomixer name=mixer background=black ! ' +
                 'video/x-raw,width=' + str(w) + ',height=' + str(h) + ' ! ' +
-                'xvimagesink double-buffer=false sync=false ' +
+                'xvimagesink double-buffer=false sync=false name=goggles ' +
                 'tee. ! ' +
                 'queue ! ' +
                 'mixer. ' +
+                ''.join([ 'tee orig. ! ' + \
+                    'queue ! ' + \
+                    'xvimagesink sync=false name=viewport' + str(i) + ' ' \
+                    for i in xrange(0, viewports) ]) +
                 dump_pipeline)
         self.mixer = self.player.get_by_name('mixer')
         self.caps_elem = self.player.get_by_name('caps')
@@ -135,11 +167,13 @@ class GTK_Main(object):
     def on_sync_message(self, bus, message):
         if message.get_structure().get_name() == 'prepare-window-handle':
             imagesink = message.src
+            gst_window = self.gst_windows[imagesink.name]
+
             Gdk.threads_enter()
             imagesink.set_window_handle(
-                    self.gst_window.get_property('window').get_xid())
+                    gst_window.get_property('window').get_xid())
             Gdk.threads_leave()
-            sys.stderr.write('Gstreamer synced\n')
+            sys.stderr.write('Gstreamer synced ' + imagesink.name + '\n')
 
     def on_key_press(self, widget, event):
         keyname = Gdk.keyval_name(event.keyval)
