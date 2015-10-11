@@ -24,7 +24,18 @@ else:
 
 # Don't write the stream to disk by default
 dump_pipeline = ''
+
+# Raw video, huge output, fast, tricky to replay
 #dump_pipeline = 'orig. ! queue ! filesink location=capture.raw'
+
+# Ok quality, about 7 times smaller than raw, rather fast
+#dump_pipeline = 'orig. ! jpegenc ! avimux ! queue ! filesink location=capture.mov'
+
+# Low quality, about 15 times smaller than raw, rather fast
+#dump_pipeline = 'orig. ! jpegenc idct-method=2 quality=45 ! avimux ! queue ! filesink location=capture.mov'
+
+# CPU-intensive, lowest quality, 50x smaller than raw at bitrate=4096
+#dump_pipeline = 'orig. ! theoraenc bitrate=4096 ! oggmux ! queue ! filesink location=capture.ogg'
 
 default_scale = 100
 if len(sys.argv) > 2:
@@ -155,6 +166,8 @@ class GTK_Main(object):
             self.left_x += 1
             self.right_x -= 1
             self.geom_update()
+
+        # TODO: overlay text messages confirming the change on video
 
 # Find the selected screen using xrandr directly
 #
