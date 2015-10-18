@@ -27,13 +27,14 @@ Other options
 =============
 
 `-viewport` creates additional video output windows for people who want to
-watch the feed on the laptop screen while the pilot uses the goggles.
+watch the feed on the laptop screen while the pilot uses the goggles.  Or
+for the pilot to watch while another person uses the goggles.
 
 `-defscale` _`<scale>`_
 
-_scale_ can be an integer percentage to set the initial video scale.
-Default is 100.  100 means use the full goggles resolution (about 110
-degrees FOV on an oculus DK2).  20 or 30 percent will give a FOV
+_scale_ can be an integer percentage to set the initial video scale for
+the goggles.  Default is 100.  100 means use the full goggles resolution
+(about 110 degrees FOV on an oculus DK2).  20 or 30 percent will give a FOV
 similar to Fatshark, Headplay and other goggles.
 
 Keys
@@ -69,8 +70,10 @@ Dependencies
 ============
 
 Gstreamer-1.0 or later is required, gobject and GTK libraries and their
-python bindings.  Installing the gstreamer python bindings should in
-theory pull everything else in as dependency (`apt-get install python-gst-1.0`).
+python bindings.  dbus-python is optional: it allows the script to inhibit
+the Gnome screen saver while streaming video.  Installing the gstreamer
+python bindings should in theory pull everything else in as dependency
+(`apt-get install python-gst-1.0`).
 
 Problems
 ========

@@ -132,6 +132,42 @@ class GTK_Main(object):
         self.player.set_state(Gst.State.PLAYING)
         sys.stderr.write('Gstreamer pipeline created and started\n')
 
+        self.inhibit_screensaver()
+
+    def inhibit_screensaver(self):
+        try:
+            import dbus
+            dbus_bus = dbus.SessionBus()
+            ss_proxy = dbus_bus.get_object('org.gnome.ScreenSaver',
+                    '/org/gnome/ScreenSaver')
+            ss_iface = dbus.Interface(ss_proxy,
+                    dbus_interface='org.gnome.ScreenSaver')
+        except Exception as e:
+            sys.stderr.write('Could not find gnome screensaver: ' +
+                    str(e) + '\n')
+            return
+
+        # Should work on older versions of the gnome-screensaver
+        try:
+            cookie = ss_iface.Inhibit('fpv-stream.py', 'Streaming')
+            return
+        except Exception as e:
+            method1_excp = e
+
+        # Should work on all versions
+        try:
+            ss_iface.SimulateUserActivity()
+            GObject.timeout_add(10000, self.screensaver_timeout_cb, ss_iface)
+        except Exception as method2_excp:
+            sys.stderr.write('Gnome screensaver present but could not be ' +
+                    'disabled with either method:\n' +
+                    str(method1_excp) + '\n' +
+                    str(method2_excp) + '\n')
+
+    def screensaver_timeout_cb(self, ss_iface):
+        ss_iface.SimulateUserActivity()
+        return True
+
     def geom_update(self):
         video_w = self.per_eye_w * self.video_scale / 100
         video_h = self.per_eye_h * self.video_scale / 100
