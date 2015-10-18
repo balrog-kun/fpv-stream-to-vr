@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# This script can be placed or symlinked to in /etc/pm/sleep.d to
+# make the system wait for the FPV stream to end before letting the
+# machine suspend.  There are probably better ways to do this.
+
+case $1 in
+	suspend|suspend_hybrid|hibernate)
+		while true; do
+			tmpfile=$(mktemp)
+			ps auxww > $tmpfile
+			if grep stream.py $tmpfile > /dev/null; then
+				sleep 10
+				continue
+			fi
+			break
+		done
+	;;
+esac
